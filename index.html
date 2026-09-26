@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>银河造字工坊 · Galaxy Encoding System</title>
+<style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+        background: radial-gradient(ellipse at top, #1a1f3a 0%, #0a0e1a 100%);
+        color: #e0e0e0;
+        font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+        min-height: 100vh; padding: 16px;
+        display: flex; justify-content: center; align-items: flex-start;
+    }
+    .app { width: 100%; max-width: 560px; }
+    .header { text-align: center; margin-bottom: 16px; position: relative; }
+    .header h1 { font-size: 20px; color: #6bb6ff; letter-spacing: 3px; margin-bottom: 4px; }
+    .header p { font-size: 11px; color: #667799; letter-spacing: 1px; }
+
+    /* Language switcher */
+    .lang-switch {
+        position: absolute;
+        top: 0;
+        right: 0;
+        display: flex;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(107,182,255,0.3);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .lang-switch button {
+        padding: 6px 12px;
+        background: transparent;
+        border: none;
+        color: #667799;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        font-family: inherit;
+    }
+    .lang-switch button.active {
+        background: rgba(107,182,255,0.25);
+        color: #6bb6ff;
+    }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; background: rgba(255,255,255,0.04); padding: 6px; border-radius: 12px; }
+    .tab { flex: 1; padding: 10px 4px; text-align: center; font-size: 12px; color: #667799; border-radius: 8px; cursor: pointer; transition: all 0.3s; user-select: none; }
+    .tab.active { background: rgba(107,182,255,0.15); color: #6bb6ff; font-weight: bold; }
+    .tab .badge { display: inline-block; background: rgba(107,182,255,0.3); color: #6bb6ff; font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 2px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(107,182,255,0.2); border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+    .card-title { font-size: 13px; color: #c9a85c; letter-spacing: 2px; margin-bottom: 14px; }
+
+    .input-row { display: flex; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
+    .input-row input { flex: 1 1 80px; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(107,182,255,0.3); border-radius: 10px; padding: 12px; color: #fff; font-size: 15px; font-family: 'Courier New', monospace; outline: none; transition: all 0.3s; }
+    .input-row input::placeholder { color: #445566; font-family: 'PingFang SC',sans-serif; }
+    .input-row input:focus { border-color: #6bb6ff; box-shadow: 0 0 10px rgba(107,182,255,0.3); }
+    .input-row input.meaning-input { flex: 2 1 120px; font-family: 'PingFang SC',sans-serif; font-size: 14px; }
+    .btn-add { flex: 1 1 100%; padding: 12px 20px; background: linear-gradient(135deg, #1a365d, #0066cc); border: none; border-radius: 10px; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s; text-align: center; }
+    .btn-add:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,102,204,0.4); }
+
+    .rule-hint { font-size: 11px; color: #667799; line-height: 1.6; margin-bottom: 10px; padding-left: 4px; }
+    .rule-hint strong { color: #6bb6ff; }
+
+.map-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .map-item { display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(107,182,255,0.08); border: 1px solid rgba(107,182,255,0.25); border-radius: 10px; font-size: 13px; }
+    .map-item .key { font-family: 'Courier New', monospace; color: #6bb6ff; font-weight: bold; font-size: 15px; }
+    .map-item .arrow { color: #445566; }
+    .map-item .val { color: #c9a85c; }
+    .map-item .del { margin-left: 4px; color: #ff6b6b; cursor: pointer; font-size: 16px; opacity: 0.6; transition: opacity 0.2s; }
+    .map-item .del:hover { opacity: 1; }
+    .map-empty { font-size: 12px; color: #445566; text-align: center; padding: 16px 0; }
+
+    .select-area { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .select-area select { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(107,182,255,0.3); border-radius: 10px; padding: 12px; color: #fff; font-size: 15px; font-family: 'Courier New', monospace; outline: none; cursor: pointer; appearance: none; }
+    .select-area select option { background: #1a1f3a; color: #fff; }
+    .select-area .label { font-size: 12px; color: #667799; width: 70px; text-align: right; flex-shrink: 0; }
+    .meaning-preview { text-align: center; font-size: 13px; color: #c9a85c; margin: 4px 0 12px 0; min-height: 18px; letter-spacing: 1px; transition: all 0.3s ease; }
+    .plus-sign { text-align: center; color: #6bb6ff; font-size: 20px; margin: 4px 0; }
+
+    .structure-select { display: flex; gap: 8px; margin-top: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .structure-btn { flex: 1; padding: 10px 6px; background: rgba(255,255,255,0.06); border: 1px solid rgba(107,182,255,0.3); border-radius: 10px; color: #99aabb; font-size: 12px; cursor: pointer; transition: all 0.3s; text-align: center; min-width: 70px; }
+    .structure-btn.active { background: rgba(107,182,255,0.2); border-color: #6bb6ff; color: #6bb6ff; font-weight: bold; }
+
+    .slider-container { display: flex; align-items: center; gap: 10px; background: rgba(107,182,255,0.05); padding: 10px 14px; border-radius: 10px; margin-bottom: 6px; }
+    .slider-container span { font-size: 12px; color: #99aabb; white-space: nowrap; min-width: 110px; }
+    .slider-container input[type=range] { flex: 1; -webkit-appearance: none; background: rgba(107,182,255,0.2); height: 4px; border-radius: 2px; outline: none; }
+    .slider-container input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #6bb6ff; cursor: pointer; border: 2px solid #1a1f3a; }
+    .slider-value { font-family: 'Courier New', monospace; font-size: 13px; color: #6bb6ff; width: 50px; text-align: right; }
+
+.btn-forge { width: 100%; padding: 16px; background: linear-gradient(135deg, #1a365d 0%, #0066cc 100%); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: bold; letter-spacing: 3px; cursor: pointer; margin-top: 8px; transition: all 0.3s; }
+    .btn-forge:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,102,204,0.4); }
+    .btn-forge:disabled { opacity: 0.5; cursor: not-allowed; }
+    .forging { animation: forgePulse 0.6s ease-in-out 3; }
+    @keyframes forgePulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+    .result { display: none; margin-top: 16px; padding: 20px 16px; background: rgba(0,102,204,0.08); border: 1px dashed rgba(107,182,255,0.5); border-radius: 14px; text-align: center; animation: fadeIn 0.5s ease; }
+    .result-code { font-size: 34px; font-family: 'Courier New', monospace; font-weight: bold; color: #6bb6ff; letter-spacing: 3px; word-break: break-all; margin-bottom: 10px; }
+    .result-rarity { display: inline-block; padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
+    .rarity-SSR { background: linear-gradient(90deg, #ff6b6b, #ffd93d); color: #1a1f3a; }
+    .rarity-SR { background: linear-gradient(90deg, #a855f7, #6bb6ff); color: #fff; }
+    .rarity-R { background: rgba(107,182,255,0.2); color: #6bb6ff; }
+    .result-meaning { font-size: 14px; color: #99aabb; margin-top: 6px; }
+
+    .codex-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; }
+    .codex-header .card-title { margin-bottom: 0; }
+    .header-buttons { display: flex; gap: 6px; }
+    .btn-export { padding: 6px 12px; background: rgba(201,168,92,0.15); border: 1px solid rgba(201,168,92,0.4); border-radius: 8px; color: #c9a85c; font-size: 11px; cursor: pointer; transition: all 0.3s; }
+    .btn-export:hover { background: rgba(201,168,92,0.3); }
+    .btn-clear { padding: 6px 12px; background: rgba(255,107,107,0.15); border: 1px solid rgba(255,107,107,0.4); border-radius: 8px; color: #ff6b6b; font-size: 11px; cursor: pointer; transition: all 0.3s; }
+    .btn-clear:hover { background: rgba(255,107,107,0.3); }
+
+.codex-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .codex-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; background: rgba(107,182,255,0.1); border: 1px solid rgba(107,182,255,0.25); border-radius: 10px; cursor: pointer; transition: all 0.2s; min-width: 90px; position: relative; align-items: center; }
+    .codex-item:hover { background: rgba(107,182,255,0.2); transform: translateY(-1px); }
+    .codex-code { font-family: 'Courier New', monospace; font-size: 13px; color: #6bb6ff; font-weight: bold; padding-right: 16px; margin-top: 2px; }
+    .codex-meaning { font-size: 11px; color: #c9a85c; }
+    .codex-del { position: absolute; top: 4px; right: 6px; color: #ff6b6b; font-size: 14px; font-weight: bold; opacity: 0.5; cursor: pointer; transition: opacity 0.2s; line-height: 1; }
+    .codex-del:hover { opacity: 1; }
+
+    .btn-main { width: 100%; padding: 16px; background: linear-gradient(135deg, #1a365d 0%, #0066cc 100%); border: none; border-radius: 12px; color: #fff; font-size: 16px; font-weight: bold; letter-spacing: 3px; cursor: pointer; transition: all 0.3s; margin-top: 10px; }
+    .btn-main:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,102,204,0.4); }
+    .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status-bar { font-size: 12px; color: #8899bb; text-align: center; padding: 10px; background: rgba(107,182,255,0.05); border-radius: 10px; margin-top: 12px; min-height: 36px; display: flex; align-items: center; justify-content: center; }
+    .footer-note { font-size: 10px; color: #445566; text-align: center; margin-top: 20px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="app">
+    <div class="header">
+        <div class="lang-switch">
+            <button id="langZh" onclick="setLang('zh')">中文</button>
+            <button id="langEn" onclick="setLang('en')">EN</button>
+        </div>
+        <h1 id="pageTitle">🌌 银河造字工坊</h1>
+        <p id="pageSubtitle">万物皆可专属ID · 私人宇宙构建器</p >
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab(0, this)"><span data-i18n="tabShape">形旁</span><span class="badge" id="shapeBadge">0</span></div>
+        <div class="tab" onclick="switchTab(1, this)"><span data-i18n="tabSound">声旁</span><span class="badge" id="soundBadge">0</span></div>
+        <div class="tab" onclick="switchTab(2, this)"><span data-i18n="tabForge">造字台</span></div>
+        <div class="tab" onclick="switchTab(3, this)"><span data-i18n="tabExport">字体导出</span></div>
+    </div>
+
+    <!-- Panel 1: Shape -->
+    <div class="panel active" id="panel0">
+        <div class="card">
+            <div class="card-title" data-i18n="shapeTitle">🔷 定义我的形旁（分类库）</div>
+            <div class="rule-hint" data-i18n="shapeHint">💡 规则：形旁必须是<strong>纯辅音字母</strong>（不含 a e i o u）。<br>例如：<strong>s</strong>、<strong>m</strong>、<strong>sl</strong>、<strong>zh</strong></div>
+            <div class="input-row">
+                <input id="shapeKey" placeholder="字母，如 s" maxlength="6">
+                <input id="shapeVal" class="meaning-input" placeholder="含义，如 疒" maxlength="12">
+                <button class="btn-add" onclick="addShape()" data-i18n="btnAdd">添加</button>
+            </div>
+            <div class="map-list" id="shapeList"><div class="map-empty" data-i18n="emptyShape">还没有定义形旁，请在上方添加</div></div>
+        </div>
+    </div>
+
+    <!-- Panel 2: Sound -->
+    <div class="panel" id="panel1">
+        <div class="card">
+            <div class="card-title" data-i18n="soundTitle">🔶 定义我的声旁（特征库）</div>
+            <div class="rule-hint" data-i18n="soundHint">💡 规则：声旁必须以<strong>元音字母</strong>开头（a e i o u），或仅由元音字母构成。<br>例如：<strong>a</strong>、<strong>uls</strong>、<strong>aob</strong>、<strong>uey</strong></div>
+            <div class="input-row">
+                <input id="soundKey" placeholder="字母，如 ehe" maxlength="8">
+                <input id="soundVal" class="meaning-input" placeholder="含义，如 禾" maxlength="12">
+                <button class="btn-add" onclick="addSound()" data-i18n="btnAdd">添加</button>
+            </div>
+            <div class="map-list" id="soundList"><div class="map-empty" data-i18n="emptySound">还没有定义声旁，请在上方添加</div></div>
+        </div>
+    </div>
+
+<!-- Panel 3: Forge -->
+    <div class="panel" id="panel2">
+        <div class="card">
+            <div class="card-title" data-i18n="forgeTitle">⚗️ 造 字 熔 炉</div>
+            <div class="select-area"><div class="label" data-i18n="labelShape">形旁</div><select id="selShape" onchange="updateMeaningDisplay()"></select></div>
+            <div class="meaning-preview" id="shapeMeaningPreview">—</div>
+            <div class="plus-sign">+</div>
+            <div class="select-area"><div class="label" data-i18n="labelSound">声旁</div><select id="selSound" onchange="updateMeaningDisplay()"></select></div>
+            <div class="meaning-preview" id="soundMeaningPreview">—</div>
+
+            <div class="card-title" style="margin-top:14px;" data-i18n="structureTitle">🧩 选择结构</div>
+            <div class="structure-select" id="forgeStructureSelect">
+                <div class="structure-btn active" data-struct="side" data-i18n="structSide">左右结构</div>
+                <div class="structure-btn" data-struct="top-bottom" data-i18n="structTopBottom">上下结构</div>
+                <div class="structure-btn" data-struct="enclosure" data-i18n="structEnclosure">左上包围</div>
+            </div>
+
+            <div id="sliderPanel" style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px;">
+                <div id="panelSide" style="display: block;">
+                    <div class="slider-container"><span data-i18n="leftScale">左部大小：</span><input type="range" id="sideLeftScale" min="20" max="150" value="75" oninput="updateParam('sideLeftScale', this.value)"><span class="slider-value" id="sideLeftScaleVal">75%</span></div>
+                    <div class="slider-container"><span data-i18n="leftWidth">左部瘦身：</span><input type="range" id="sideLeftWidth" min="20" max="150" value="100" oninput="updateParam('sideLeftWidth', this.value)"><span class="slider-value" id="sideLeftWidthVal">100%</span></div>
+                    <div class="slider-container"><span data-i18n="rightScale">右部大小：</span><input type="range" id="sideRightScale" min="20" max="150" value="100" oninput="updateParam('sideRightScale', this.value)"><span class="slider-value" id="sideRightScaleVal">100%</span></div>
+                    <div class="slider-container"><span data-i18n="rightWidth">右部瘦身：</span><input type="range" id="sideRightWidth" min="20" max="150" value="100" oninput="updateParam('sideRightWidth', this.value)"><span class="slider-value" id="sideRightWidthVal">100%</span></div>
+                    <div class="slider-container"><span data-i18n="spacingSide">左右间距：</span><input type="range" id="sideSpacing" min="-200" max="200" value="-120" oninput="updateParam('sideSpacing', this.value)"><span class="slider-value" id="sideSpacingVal">-120</span></div>
+                </div>
+
+<div id="panelTopBottom" style="display: none;">
+                    <div class="slider-container"><span data-i18n="topScale">上部大小：</span><input type="range" id="topScale" min="20" max="150" value="50" oninput="updateParam('topScale', this.value)"><span class="slider-value" id="topScaleVal">50%</span></div>
+                    <div class="slider-container"><span data-i18n="bottomScale">下部大小：</span><input type="range" id="bottomScale" min="20" max="150" value="65" oninput="updateParam('bottomScale', this.value)"><span class="slider-value" id="bottomScaleVal">65%</span></div>
+                    <div class="slider-container"><span data-i18n="spacingTopBottom">上下间距：</span><input type="range" id="topBottomSpacing" min="-200" max="200" value="-80" oninput="updateParam('topBottomSpacing', this.value)"><span class="slider-value" id="topBottomSpacingVal">-80</span></div>
+                </div>
+
+                <div id="panelEnclosure" style="display: none;">
+                    <div class="slider-container"><span data-i18n="encOuterScale">外部大小：</span><input type="range" id="encOuterScale" min="20" max="150" value="90" oninput="updateParam('encOuterScale', this.value)"><span class="slider-value" id="encOuterScaleVal">90%</span></div>
+                    <div class="slider-container"><span data-i18n="encInnerScale">内部大小：</span><input type="range" id="encInnerScale" min="20" max="150" value="45" oninput="updateParam('encInnerScale', this.value)"><span class="slider-value" id="encInnerScaleVal">45%</span></div>
+                    <div class="slider-container"><span data-i18n="encOffsetX">内部水平偏移：</span><input type="range" id="encOffsetX" min="-200" max="200" value="120" oninput="updateParam('encOffsetX', this.value)"><span class="slider-value" id="encOffsetXVal">120</span></div>
+                    <div class="slider-container"><span data-i18n="encOffsetY">内部垂直偏移：</span><input type="range" id="encOffsetY" min="-200" max="200" value="120" oninput="updateParam('encOffsetY', this.value)"><span class="slider-value" id="encOffsetYVal">120</span></div>
+                </div>
+            </div>
+
+            <div class="input-row" style="margin-top:12px;">
+                <input id="suffix" placeholder="后缀" value=".ges" maxlength="8">
+                <input id="meaning" class="meaning-input" placeholder="必填：你定义这个编码代表什么" maxlength="12">
+            </div>
+            <button class="btn-forge" id="forgeBtn" onclick="forge()" data-i18n="btnForge">🔥 熔 炼 造 字</button>
+            <div class="result" id="result">
+                <div class="result-rarity" id="rarity"></div>
+                <div id="resultComposite" style="display:none; justify-content: center; margin: 10px 0 15px 0;"></div>
+                <div class="result-code" id="resultCode"></div>
+                <div class="result-meaning" id="resultMeaning"></div>
+            </div>
+        </div>
+
+<div class="card">
+            <div class="codex-header">
+                <div class="card-title" data-i18n="codexTitle">📖 我的字库图鉴</div>
+                <div class="header-buttons">
+                    <button class="btn-export" onclick="exportAll()" data-i18n="btnExportCsv">📥 导出CSV</button>
+                    <button class="btn-clear" onclick="clearCodex()" data-i18n="btnClear">清空</button>
+                </div>
+            </div>
+            <div class="codex-list" id="codexList"><div class="map-empty" data-i18n="emptyCodex">还没有造过字</div></div>
+        </div>
+    </div>
+
+    <!-- Panel 4: Export -->
+    <div class="panel" id="panel3">
+        <div class="card">
+            <div class="card-title" data-i18n="exportTitle">🔤 导出真字体（.otf 批量版）</div>
+            <div class="rule-hint" data-i18n="exportHint">
+                💡 将你图鉴中造的所有字，一键打包成一个真正的字体文件。<br>
+                同时会下载一份 <strong>编码对照表.csv</strong>，记录每个字的 PUA 编码和最终编码。<br>
+                安装字体后，在软件里输入 <strong>U+E000</strong>、<strong>U+E001</strong>……就能按顺序打出你造的字。
+            </div>
+            <div style="text-align:center; padding: 20px 0;">
+                <div style="font-size:14px; color:#8899bb; margin-bottom:10px;">
+                    <span data-i18n="fontCountPrefix">当前图鉴中共有 </span><span id="codexFontCount" style="color:#6bb6ff; font-weight:bold; font-size:20px;">0</span><span data-i18n="fontCountSuffix"> 个字待打包</span>
+                </div>
+                <button class="btn-main" id="generateFontBtn" onclick="generateFontBatch()" data-i18n="btnGenerateFont">🎨 一键生成并下载字体包</button>
+            </div>
+            <div class="status-bar" id="statusBar" data-i18n="statusLoading">⏳ 正在加载基础字体...</div>
+        </div>
+    </div>
+
+    <div class="footer-note" id="footerNote">底层协议已申请国家发明专利保护 · 著作权人：黄传明<br>本工具为文化创意辅助工具，不具任何金融投资属性。</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script>
+// ================= i18n 语言包 =================
+const i18n = {
+    zh: {
+        pageTitle: '🌌 银河造字工坊',
+        pageSubtitle: '万物皆可专属ID · 私人宇宙构建器',
+        tabShape: '形旁', tabSound: '声旁', tabForge: '造字台', tabExport: '字体导出',
+        shapeTitle: '🔷 定义我的形旁（分类库）',
+        shapeHint: '💡 规则：形旁必须是<strong>纯辅音字母</strong>（不含 a e i o u）。<br>例如：<strong>s</strong>、<strong>m</strong>、<strong>sl</strong>、<strong>zh</strong>',
+        soundTitle: '🔶 定义我的声旁（特征库）',
+        soundHint: '💡 规则：声旁必须以<strong>元音字母</strong>开头（a e i o u），或仅由元音字母构成。<br>例如：<strong>a</strong>、<strong>uls</strong>、<strong>aob</strong>、<strong>uey</strong>',
+        btnAdd: '添加', emptyShape: '还没有定义形旁，请在上方添加', emptySound: '还没有定义声旁，请在上方添加',
+        forgeTitle: '⚗️ 造 字 熔 炉', labelShape: '形旁', labelSound: '声旁',
+        structureTitle: '🧩 选择结构', structSide: '左右结构', structTopBottom: '上下结构', structEnclosure: '左上包围',
+        leftScale: '左部大小：', leftWidth: '左部瘦身：', rightScale: '右部大小：', rightWidth: '右部瘦身：', spacingSide: '左右间距：',
+        topScale: '上部大小：', bottomScale: '下部大小：', spacingTopBottom: '上下间距：',
+        encOuterScale: '外部大小：', encInnerScale: '内部大小：', encOffsetX: '内部水平偏移：', encOffsetY: '内部垂直偏移：',
+        btnForge: '🔥 熔 炼 造 字', codexTitle: '📖 我的字库图鉴',
+        btnExportCsv: '📥 导出CSV', btnClear: '清空', emptyCodex: '还没有造过字',
+        exportTitle: '🔤 导出真字体（.otf 批量版）',
+        exportHint: '💡 将你图鉴中造的所有字，一键打包成一个真正的字体文件。<br>同时会下载一份 <strong>编码对照表.csv</strong>，记录每个字的 PUA 编码和最终编码。<br>安装字体后，在软件里输入 <strong>U+E000</strong>、<strong>U+E001</strong>……就能按顺序打出你造的字。',
+        fontCountPrefix: '当前图鉴中共有 ', fontCountSuffix: ' 个字待打包',
+        btnGenerateFont: '🎨 一键生成并下载字体包',
+        statusLoading: '⏳ 正在加载基础字体...',
+        footerNote: '底层协议已申请国家发明专利保护 · 著作权人：黄传明<br>本工具为文化创意辅助工具，不具任何金融投资属性。',
+        // 动态文案
+        shapeMeaningPrefix: '✦ 形旁含义：', meaningSuffix: ' ✦',
+        raritySSR: 'SSR · 传说', raritySR: 'SR · 稀有', rarityR: 'R · 普通',
+        meaningPrefix: '含义：',
+        statusFontLoaded: '✅ 基础字体已加载，可以打包生成',
+        statusFontFailed: '⚠️ 字体加载失败，请检查网络后刷新',
+        statusPackingPrefix: '⏳ 正在打包 ', statusPackingSuffix: ' 个字符...（耗时较长请稍等）',
+        statusSuccess: '✅ 打包成功！字体 + 编码对照表已下载。',
+        statusError: '❌ 生成失败：',
+        alertFillBoth: '字母和含义都要填哦！',
+        alertShapeVowel: '❌ 形旁不能包含元音字母（a e i o u）！',
+        alertSoundVowel: '❌ 声旁必须以元音字母（a e i o u）开头！',
+        alertDuplicate: '已定义过啦！',
+        alertDeleteConfirm: '确定删除？已造的字不受影响。',
+        alertNeedShapeSoundMeaning: '请先定义形旁、声旁，并填写含义！',
+        alertNoData: '暂无数据导出',
+        alertCodexEmpty: '图鉴里还没有字，先去造几个字吧！',
+        alertFontNotReady: '基础字体还没加载好，请检查网络后刷新...',
+        alertClearConfirm: '确定清空所有字吗？',
+        alertDeleteCodex: '确定删除？',
+        alertGenerating: '⚗️ 熔炼中...',
+        selectShapePlaceholder: '⚠️ 请先添加形旁',
+        selectSoundPlaceholder: '⚠️ 请先添加声旁',
+        undefinedMeaning: '未定义',
+        // 文件名
+        csvFilename: '银河造字工坊_数据.csv',
+        fontFilenamePrefix: '银河字体_批量_',
+        fontFilenameSuffix: '字.otf',
+        codeTablePrefix: '银河字体编码对照表_',
+        codeTableSuffix: '字.csv'
+    },
+    en: {
+        pageTitle: '🌌 Galaxy Encoding System',
+        pageSubtitle: 'Create Your Own Letters · Patent Pending',
+        tabShape: 'Shape', tabSound: 'Sound', tabForge: 'Forge', tabExport: 'Export',
+        shapeTitle: '🔷 DEFINE YOUR SHAPES (MEANING)',
+        shapeHint: '💡 Rule: shapes must be <strong>consonants only</strong> (no a e i o u).<br>Examples: <strong>s</strong>, <strong>m</strong>, <strong>sl</strong>, <strong>zh</strong>',
+        soundTitle: '🔶 DEFINE YOUR SOUNDS (PRONUNCIATION)',
+soundHint: '💡 Rule: sounds must <strong>start with a vowel</strong> (a e i o u), or be vowels only.<br>Examples: <strong>a</strong>, <strong>uls</strong>, <strong>aob</strong>, <strong>uey</strong>',
+        btnAdd: 'Add', emptyShape: 'No shapes defined yet. Add one above.', emptySound: 'No sounds defined yet. Add one above.',
+        forgeTitle: '⚗️ FORGE A CHARACTER', labelShape: 'Shape', labelSound: 'Sound',
+        structureTitle: '🧩 STRUCTURE', structSide: 'Side by Side', structTopBottom: 'Top & Bottom', structEnclosure: 'Enclosure',
+        leftScale: 'Left size:', leftWidth: 'Left squash:', rightScale: 'Right size:', rightWidth: 'Right squash:', spacingSide: 'Spacing:',
+        topScale: 'Top size:', bottomScale: 'Bottom size:', spacingTopBottom: 'Spacing:',
+        encOuterScale: 'Outer size:', encInnerScale: 'Inner size:', encOffsetX: 'Inner X offset:', encOffsetY: 'Inner Y offset:',
+        btnForge: '🔥 FORGE CHARACTER', codexTitle: '📖 MY CODEX',
+        btnExportCsv: '📥 Export CSV', btnClear: 'Clear', emptyCodex: 'No characters yet.',
+        exportTitle: '🔤 EXPORT REAL FONT (.otf)',
+        exportHint: '💡 Pack all characters from your codex into a real font file.<br>A <strong>code table (.csv)</strong> will also be downloaded.<br>After installing the font, type <strong>U+E000</strong>, <strong>U+E001</strong>... in any software to type your characters.',
+        fontCountPrefix: '', fontCountSuffix: ' characters in codex',
+        btnGenerateFont: '🎨 Download Font Pack',
+        statusLoading: '⏳ Loading base font...',
+        footerNote: 'Galaxy Encoding System · Patent Pending · Copyright Registered<br>Invented by Huang Chuanming',
+        // 动态文案
+        shapeMeaningPrefix: '✦ Shape means: ', meaningSuffix: ' ✦',
+        raritySSR: 'SSR · Legendary', raritySR: 'SR · Rare', rarityR: 'R · Common',
+        meaningPrefix: 'Meaning: ',
+        statusFontLoaded: '✅ Base font loaded, ready to export.',
+        statusFontFailed: '⚠️ Font loading failed. Please check network and refresh.',
+        statusPackingPrefix: '⏳ Packing ', statusPackingSuffix: ' characters...',
+        statusSuccess: '✅ Done! Font + code table downloaded.',
+        statusError: '❌ Error: ',
+        alertFillBoth: 'Please fill in both letters and meaning!',
+        alertShapeVowel: '❌ Shape cannot contain vowels (a e i o u)!',
+        alertSoundVowel: '❌ Sound must start with a vowel (a e i o u)!',
+        alertDuplicate: 'Already defined!',
+        alertDeleteConfirm: 'Delete this item? Existing characters are not affected.',
+        alertNeedShapeSoundMeaning: 'Please define shape, sound, and meaning!',
+        alertNoData: 'No data to export.',
+        alertCodexEmpty: 'Codex is empty. Forge some characters first!',
+        alertFontNotReady: 'Base font not ready. Please refresh the page.',
+        alertClearConfirm: 'Clear ALL characters? This cannot be undone.',
+        alertDeleteCodex: 'Delete this character?',
+        alertGenerating: '⚗️ Forging...',
+        selectShapePlaceholder: '⚠️ Add shapes first',
+        selectSoundPlaceholder: '⚠️ Add sounds first',
+        undefinedMeaning: 'undefined',
+        // 文件名
+        csvFilename: 'Galaxy_Encoding_Data.csv',
+        fontFilenamePrefix: 'GalaxyFont_',
+        fontFilenameSuffix: 'chars.otf',
+        codeTablePrefix: 'GalaxyFont_CodeTable_',
+        codeTableSuffix: 'chars.csv'
+    }
+};
+
+let currentLang = localStorage.getItem('galaxy_lang') || 'zh';
+
+function t(key) {
+    return i18n[currentLang][key] || key;
+}
+
+function setLang(lang) {
+    currentLang = lang;
+    localStorage.setItem('galaxy_lang', lang);
+    applyLang();
+    // 刷新动态内容
+    renderShapes();
+    renderSounds();
+    renderCodex();
+    updateMeaningDisplay();
+    updateFontCount();
+    updateFontBtnStatus();
+}
+
+function applyLang() {
+    // 1. 处理 data-i18n 标记的静态文本（含 HTML）
+    document.querySelectorAll('[data-i18n]').forEach(function(el) {
+        var key = el.getAttribute('data-i18n');
+        if (i18n[currentLang][key] !== undefined) {
+            el.innerHTML = i18n[currentLang][key];
+        }
+    });
+
+    // 2. 处理标题和副标题
+    document.getElementById('pageTitle').innerText = t('pageTitle');
+    document.getElementById('pageSubtitle').innerText = t('pageSubtitle');
+    document.getElementById('footerNote').innerHTML = t('footerNote');
+
+    // 3. 处理输入框 placeholder
+    document.getElementById('shapeKey').placeholder = currentLang === 'zh' ? '字母，如 s' : 'Letters, e.g. s';
+    document.getElementById('shapeVal').placeholder = currentLang === 'zh' ? '含义，如 疒' : 'Meaning, e.g. water';
+    document.getElementById('soundKey').placeholder = currentLang === 'zh' ? '字母，如 ehe' : 'Letters, e.g. uls';
+    document.getElementById('soundVal').placeholder = currentLang === 'zh' ? '含义，如 禾' : 'Meaning, e.g. green';
+    document.getElementById('suffix').placeholder = currentLang === 'zh' ? '后缀' : 'Suffix';
+    document.getElementById('meaning').placeholder = currentLang === 'zh' ? '必填：你定义这个编码代表什么' : 'Meaning (required)';
+
+// 4. 更新语言切换按钮状态
+    document.getElementById('langZh').classList.toggle('active', currentLang === 'zh');
+    document.getElementById('langEn').classList.toggle('active', currentLang === 'en');
+
+    // 5. 更新按钮文字
+    var forgeBtn = document.getElementById('forgeBtn');
+    if (forgeBtn && !forgeBtn.disabled) {
+        forgeBtn.innerText = t('btnForge');
+    }
+    var generateBtn = document.getElementById('generateFontBtn');
+    if (generateBtn && !generateBtn.disabled) {
+        generateBtn.innerText = t('btnGenerateFont');
+    }
+
+    // 6. 更新状态栏
+    if (baseFont) {
+        setStatus(t('statusFontLoaded'));
+    } else {
+        setStatus(t('statusLoading'));
+    }
+}
+
+// ================= 全局变量与数据存储 =================
+let shapes = JSON.parse(localStorage.getItem('galaxy_shapes') || '[]');
+let sounds = JSON.parse(localStorage.getItem('galaxy_sounds') || '[]');
+let codex = JSON.parse(localStorage.getItem('galaxy_codex') || '[]');
+const VOWELS = ['a','e','i','o','u'];
+let currentForgeStructure = 'side';
+
+const VIRTUAL_SIZE = 1000;
+
+let currentParams = {
+    sideLeftScale: 75,
+    sideLeftWidth: 100,
+    sideRightScale: 100,
+    sideRightWidth: 100,
+    sideSpacing: -120,
+    topScale: 50,
+    bottomScale: 65,
+    topBottomSpacing: -80,
+    encOuterScale: 90,
+    encInnerScale: 45,
+    encOffsetX: 120,
+    encOffsetY: 120
+};
+
+// ================= 布局计算 =================
+function getLayout(struct, p) {
+    var layout = {
+        shape: { cx: 500, cy: 500, sx: 0.6, sy: 0.6 },
+        sound: { cx: 500, cy: 500, sx: 0.6, sy: 0.6 }
+    };
+
+    if (struct === 'side') {
+        var lS = p.sideLeftScale / 100;
+        var rS = p.sideRightScale / 100;
+        var lW = p.sideLeftWidth / 100;
+        var rW = p.sideRightWidth / 100;
+        var sp = p.sideSpacing;
+        layout.shape.cx = 380 - sp / 2;
+        layout.shape.cy = 500;
+        layout.shape.sx = 0.6 * lS * lW;
+        layout.shape.sy = 0.6 * lS;
+        layout.sound.cx = 620 + sp / 2;
+        layout.sound.cy = 500;
+        layout.sound.sx = 0.6 * rS * rW;
+        layout.sound.sy = 0.6 * rS;
+    } else if (struct === 'top-bottom') {
+        var tS = p.topScale / 100;
+        var bS = p.bottomScale / 100;
+        var sp2 = p.topBottomSpacing;
+        layout.shape.cx = 500;
+        layout.shape.cy = 350 - sp2 / 2;
+        layout.shape.sx = 0.6 * tS;
+        layout.shape.sy = 0.6 * tS;
+        layout.sound.cx = 500;
+        layout.sound.cy = 650 + sp2 / 2;
+        layout.sound.sx = 0.6 * bS;
+        layout.sound.sy = 0.6 * bS;
+    } else if (struct === 'enclosure') {
+        var oS = p.encOuterScale / 100;
+        var iS = p.encInnerScale / 100;
+        layout.shape.cx = 500;
+        layout.shape.cy = 500;
+        layout.shape.sx = 0.6 * oS;
+        layout.shape.sy = 0.6 * oS;
+        layout.sound.cx = 620 + p.encOffsetX;
+        layout.sound.cy = 620 + p.encOffsetY;
+        layout.sound.sx = 0.6 * iS;
+        layout.sound.sy = 0.6 * iS;
+    }
+    return layout;
+}
+
+// ================= 标签切换 =================
+function switchTab(idx, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel' + idx).classList.add('active');
+    if (idx === 2) refreshSelects();
+    if (idx === 3) updateFontCount();
+}
+
+// ================= 初始化 =================
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('#forgeStructureSelect .structure-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('#forgeStructureSelect .structure-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentForgeStructure = btn.dataset.struct;
+            document.getElementById('panelSide').style.display = (currentForgeStructure === 'side') ? 'block' : 'none';
+            document.getElementById('panelTopBottom').style.display = (currentForgeStructure === 'top-bottom') ? 'block' : 'none';
+            document.getElementById('panelEnclosure').style.display = (currentForgeStructure === 'enclosure') ? 'block' : 'none';
+            triggerPreviewUpdate();
+        });
+    });
+    syncSlidersFromParams();
+    applyLang();
+    updateFontCount();
+    loadBaseFont();
+});
+
+function updateParam(key, val) {
+    currentParams[key] = parseInt(val);
+    var displayMap = {
+        sideLeftScale: 'sideLeftScaleVal', sideLeftWidth: 'sideLeftWidthVal',
+        sideRightScale: 'sideRightScaleVal', sideRightWidth: 'sideRightWidthVal',
+        sideSpacing: 'sideSpacingVal',
+        topScale: 'topScaleVal', bottomScale: 'bottomScaleVal', topBottomSpacing: 'topBottomSpacingVal',
+        encOuterScale: 'encOuterScaleVal', encInnerScale: 'encInnerScaleVal',
+        encOffsetX: 'encOffsetXVal', encOffsetY: 'encOffsetYVal'
+    };
+    var suffix = (key.includes('Spacing') || key.includes('Offset')) ? '' : '%';
+    var el = document.getElementById(displayMap[key]);
+    if (el) el.innerText = val + suffix;
+    triggerPreviewUpdate();
+}
+
+function syncSlidersFromParams() {
+    var ids = ['sideLeftScale','sideLeftWidth','sideRightScale','sideRightWidth','sideSpacing',
+               'topScale','bottomScale','topBottomSpacing',
+               'encOuterScale','encInnerScale','encOffsetX','encOffsetY'];
+    ids.forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el && currentParams[id] !== undefined) el.value = currentParams[id];
+        var valEl = document.getElementById(id + 'Val');
+        if (valEl && currentParams[id] !== undefined) {
+            var suffix = (id.includes('Spacing') || id.includes('Offset')) ? '' : '%';
+            valEl.innerText = currentParams[id] + suffix;
+        }
+    });
+}
+
+function triggerPreviewUpdate() {
+    var shapeObj = shapes.find(s => s.key === document.getElementById('selShape').value);
+    var soundObj = sounds.find(s => s.key === document.getElementById('selSound').value);
+    if (shapeObj && soundObj) {
+        renderCompositePreview(shapeObj.val, soundObj.val);
+    }
+}
+
+// ================= 形旁/声旁定义 =================
+function addShape() {
+    var k = document.getElementById('shapeKey').value.trim().toLowerCase();
+    var v = document.getElementById('shapeVal').value.trim();
+    if (!k || !v) { alert(t('alertFillBoth')); return; }
+    for (var i = 0; i < k.length; i++) if (VOWELS.includes(k[i])) { alert(t('alertShapeVowel')); return; }
+    if (shapes.some(s => s.key === k)) { alert(t('alertDuplicate')); return; }
+    shapes.push({ key: k, val: v });
+    localStorage.setItem('galaxy_shapes', JSON.stringify(shapes));
+    document.getElementById('shapeKey').value = ''; document.getElementById('shapeVal').value = '';
+    renderShapes();
+}
+function addSound() {
+    var k = document.getElementById('soundKey').value.trim().toLowerCase();
+    var v = document.getElementById('soundVal').value.trim();
+    if (!k || !v) { alert(t('alertFillBoth')); return; }
+    if (!VOWELS.includes(k[0])) { alert(t('alertSoundVowel')); return; }
+    if (sounds.some(s => s.key === k)) { alert(t('alertDuplicate')); return; }
+    sounds.push({ key: k, val: v });
+    localStorage.setItem('galaxy_sounds', JSON.stringify(sounds));
+    document.getElementById('soundKey').value = ''; document.getElementById('soundVal').value = '';
+    renderSounds();
+}
+function delShape(idx) { if (!confirm(t('alertDeleteConfirm'))) return; shapes.splice(idx, 1); localStorage.setItem('galaxy_shapes', JSON.stringify(shapes)); renderShapes(); }
+function delSound(idx) { if (!confirm(t('alertDeleteConfirm'))) return; sounds.splice(idx, 1); localStorage.setItem('galaxy_sounds', JSON.stringify(sounds)); renderSounds(); }
+
+function renderShapes() {
+    var list = document.getElementById('shapeList');
+    document.getElementById('shapeBadge').innerText = shapes.length;
+    if (!shapes.length) { list.innerHTML = '<div class="map-empty">' + t('emptyShape') + '</div>'; return; }
+    list.innerHTML = shapes.map((s, i) => `<div class="map-item"><span class="key">${s.key}</span><span class="arrow">→</span><span class="val">${s.val}</span><span class="del" onclick="delShape(${i})">×</span></div>`).join('');
+}
+function renderSounds() {
+    var list = document.getElementById('soundList');
+    document.getElementById('soundBadge').innerText = sounds.length;
+    if (!sounds.length) { list.innerHTML = '<div class="map-empty">' + t('emptySound') + '</div>'; return; }
+    list.innerHTML = sounds.map((s, i) => `<div class="map-item"><span class="key">${s.key}</span><span class="arrow">→</span><span class="val">${s.val}</span><span class="del" onclick="delSound(${i})">×</span></div>`).join('');
+}
+
+// ================= 造字台逻辑 =================
+function refreshSelects() {
+    var selShape = document.getElementById('selShape'), selSound = document.getElementById('selSound');
+    selShape.innerHTML = shapes.length === 0 ? '<option value="">' + t('selectShapePlaceholder') + '</option>' : shapes.map(s => `<option value="${s.key}">${s.key} — ${s.val}</option>`).join('');
+    selSound.innerHTML = sounds.length === 0 ? '<option value="">' + t('selectSoundPlaceholder') + '</option>' : sounds.map(s => `<option value="${s.key}">${s.key} — ${s.val}</option>`).join('');
+    updateMeaningDisplay();
+}
+function updateMeaningDisplay() {
+    var s = shapes.find(x => x.key === document.getElementById('selShape').value);
+    var d = sounds.find(x => x.key === document.getElementById('selSound').value);
+    document.getElementById('shapeMeaningPreview').innerText = s ? t('shapeMeaningPrefix') + s.val + t('meaningSuffix') : '—';
+    document.getElementById('soundMeaningPreview').innerText = d ? t('shapeMeaningPrefix') + d.val + t('meaningSuffix') : '—';
+    triggerPreviewUpdate();
+}
+
+// ================= 统一预览渲染 =================
+function renderCompositeHTML(shapeChar, soundChar, struct, p, containerPx) {
+    if (!shapeChar || !soundChar || shapeChar.length !== 1 || soundChar.length !== 1) return '';
+
+    var layout = getLayout(struct, p);
+    var unit = containerPx / VIRTUAL_SIZE;
+    var baseFontPx = VIRTUAL_SIZE * unit;
+
+    function charSpan(ch, cfg) {
+        return `<span style="
+            position:absolute;
+            left:${cfg.cx * unit}px;
+            top:${cfg.cy * unit}px;
+            font-size:${baseFontPx}px;
+            line-height:1;
+            color:#e0e0e0;
+            transform:translate(-50%, -50%) scale(${cfg.sx}, ${cfg.sy});
+            transform-origin:center center;
+            white-space:nowrap;
+            font-family:'PingFang SC','Microsoft YaHei',serif;
+        ">${ch}</span>`;
+    }
+
+    return `<div style="position:relative; width:${containerPx}px; height:${containerPx}px;">
+        ${charSpan(shapeChar, layout.shape)}
+        ${charSpan(soundChar, layout.sound)}
+    </div>`;
+}
+
+function renderCompositePreview(shapeChar, soundChar) {
+    var html = renderCompositeHTML(shapeChar, soundChar, currentForgeStructure, currentParams, 140);
+    document.getElementById('resultComposite').innerHTML = html;
+    document.getElementById('resultComposite').style.display = html ? 'flex' : 'none';
+}
+
+function forge() {
+    var shape = document.getElementById('selShape').value;
+    var sound = document.getElementById('selSound').value;
+    var suffix = document.getElementById('suffix').value.trim().toLowerCase();
+    var meaning = document.getElementById('meaning').value.trim();
+
+    if (!shape || !sound || !meaning) { alert(t('alertNeedShapeSoundMeaning')); return; }
+    if (!suffix.startsWith('.')) suffix = '.' + suffix;
+
+    var btn = document.getElementById('forgeBtn');
+    btn.disabled = true; btn.classList.add('forging'); btn.innerText = t('alertGenerating');
+
+setTimeout(function() {
+        btn.classList.remove('forging'); btn.disabled = false; btn.innerText = t('btnForge');
+
+        var code = shape + sound + suffix;
+        var coreLen = shape.length + sound.length;
+        var rarity, rarityClass;
+        if (coreLen <= 3) { rarity = t('raritySSR'); rarityClass = 'rarity-SSR'; }
+        else if (coreLen <= 5) { rarity = t('raritySR'); rarityClass = 'rarity-SR'; }
+        else { rarity = t('rarityR'); rarityClass = 'rarity-R'; }
+
+        var shapeObj = shapes.find(s => s.key === shape);
+        var soundObj = sounds.find(s => s.key === sound);
+        var shapeChar = shapeObj ? shapeObj.val : '';
+        var soundChar = soundObj ? soundObj.val : '';
+
+        renderCompositePreview(shapeChar, soundChar);
+
+        document.getElementById('resultCode').innerText = code;
+        document.getElementById('rarity').innerText = rarity;
+        document.getElementById('rarity').className = 'result-rarity ' + rarityClass;
+        document.getElementById('resultMeaning').innerText = t('meaningPrefix') + meaning;
+        document.getElementById('result').style.display = 'block';
+
+        codex.push({
+            code: code, shape: shape, shapeMeaning: shapeChar,
+            sound: sound, soundMeaning: soundChar,
+            meaning: meaning, rarity: rarity, time: new Date().toLocaleString(),
+            structure: currentForgeStructure,
+            params: JSON.parse(JSON.stringify(currentParams))
+        });
+        localStorage.setItem('galaxy_codex', JSON.stringify(codex));
+        renderCodex();
+    }, 1800);
+}
+
+// ================= 图鉴渲染 =================
+function renderCodex() {
+    var list = document.getElementById('codexList');
+    if (codex.length === 0) { list.innerHTML = '<div class="map-empty">' + t('emptyCodex') + '</div>'; return; }
+
+    var html = '';
+    for (var i = codex.length - 1; i >= 0; i--) {
+        var item = codex[i];
+        var shapeChar = item.shapeMeaning || '';
+        var soundChar = item.soundMeaning || '';
+        var struct = item.structure || 'side';
+
+        var p = Object.assign({
+            sideLeftScale: 75, sideRightScale: 100, sideSpacing: -120,
+            sideLeftWidth: 100, sideRightWidth: 100,
+            topScale: 50, bottomScale: 65, topBottomSpacing: -80,
+            encOuterScale: 90, encInnerScale: 45, encOffsetX: 120, encOffsetY: 120
+        }, item.params || {});
+
+        var compositeHTML = renderCompositeHTML(shapeChar, soundChar, struct, p, 50);
+
+        html += `<div class="codex-item">
+                    <span class="codex-del" onclick="delCodex(event, ${i})">×</span>
+                    ${compositeHTML}
+                    <span class="codex-code">${item.code}</span>
+                    <span class="codex-meaning">${item.meaning || t('undefinedMeaning')}</span>
+                 </div>`;
+    }
+    list.innerHTML = html;
+}
+function delCodex(e, idx) { e.stopPropagation(); if (!confirm(t('alertDeleteCodex'))) return; codex.splice(idx, 1); localStorage.setItem('galaxy_codex', JSON.stringify(codex)); renderCodex(); updateFontCount(); }
+function clearCodex() { if (!confirm(t('alertClearConfirm'))) return; codex = []; localStorage.setItem('galaxy_codex', JSON.stringify(codex)); renderCodex(); updateFontCount(); }
+
+// ================= 导出CSV =================
+function exportAll() {
+    if (!shapes.length && !sounds.length && !codex.length) { alert(t('alertNoData')); return; }
+    var csv = '\uFEFF';
+    csv += '【1. Shape Table】\nNo,Shape,Meaning\n'; shapes.forEach((s,i)=>csv+=`"${i+1}","${s.key}","${s.val}"\n`);
+    csv += '\n【2. Sound Table】\nNo,Sound,Meaning\n'; sounds.forEach((s,i)=>csv+=`"${i+1}","${s.key}","${s.val}"\n`);
+    csv += '\n【3. Character Records】\nNo,Shape,Sound,Code,Shape Meaning,Sound Meaning,Full Meaning,Structure,Rarity,Time\n';
+    codex.forEach((c,i)=>{
+        var so = shapes.find(x=>x.key===c.shape); var doo = sounds.find(x=>x.key===c.sound);
+        csv+=`"${i+1}","${c.shape}","${c.sound}","${c.code}","${c.shapeMeaning||so?.val||''}","${c.soundMeaning||doo?.val||''}","${c.meaning}","${c.structure||'side'}","${c.rarity}","${c.time}"\n`;
+    });
+    var blob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = t('csvFilename'); a.click();
+}
+
+// ================= 字体批量导出 =================
+const BASE_FONT_URL = 'https://cdn.jsdelivr.net/gh/notofonts/noto-cjk@main/Sans/SubsetOTF/SC/NotoSansSC-Regular.otf';
+const PUA_START = 0xE000;
+let baseFont = null;
+
+function updateFontCount() {
+    var currentCodex = JSON.parse(localStorage.getItem('galaxy_codex') || '[]');
+    var el = document.getElementById('codexFontCount');
+    if (el) el.innerText = currentCodex.length;
+}
+
+function updateFontBtnStatus() {
+    var btn = document.getElementById('generateFontBtn');
+    if (btn && !btn.disabled) btn.innerText = t('btnGenerateFont');
+}
+
+async function loadBaseFont() {
+    setStatus(t('statusLoading'));
+    try {
+        baseFont = await opentype.load(BASE_FONT_URL);
+        setStatus(t('statusFontLoaded'));
+    } catch (e) {
+        console.error(e);
+        setStatus(t('statusFontFailed'));
+        baseFont = null;
+    }
+}
+
+function setStatus(msg) {
+    var el = document.getElementById('statusBar');
+    if (el) el.innerText = msg;
+}
+
+async function generateFontBatch() {
+    var currentCodex = JSON.parse(localStorage.getItem('galaxy_codex') || '[]');
+    if (currentCodex.length === 0) { alert(t('alertCodexEmpty')); return; }
+    if (!baseFont) { alert(t('alertFontNotReady')); return; }
+
+    var btn = document.getElementById('generateFontBtn');
+    if(btn) btn.disabled = true;
+    setStatus(t('statusPackingPrefix') + currentCodex.length + t('statusPackingSuffix'));
+
+    setTimeout(() => {
+        try {
+            var font = buildBatchFont(currentCodex);
+            var arrayBuffer = font.toArrayBuffer();
+            var blob = new Blob([arrayBuffer], {type: 'font/otf'});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = t('fontFilenamePrefix') + currentCodex.length + t('fontFilenameSuffix');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+var csv = '\uFEFF';
+            csv += 'Galaxy Encoding System · Font Code Table\n';
+            csv += 'Exported: ' + new Date().toLocaleString() + '\n';
+            csv += 'Total: ' + currentCodex.length + '\n\n';
+            csv += 'No,PUA Code,Final Code,Shape,Sound,Shape Meaning,Sound Meaning,Full Meaning,Structure,Rarity\n';
+            currentCodex.forEach(function(item, index) {
+                var puaCode = 'U+' + (0xE000 + index).toString(16).toUpperCase().padStart(4, '0');
+                csv += '"' + (index + 1) + '","' + puaCode + '","' + (item.code || '') + '","' + (item.shape || '') + '","' + (item.sound || '') + '","' + (item.shapeMeaning || '') + '","' + (item.soundMeaning || '') + '","' + (item.meaning || '') + '","' + (item.structure || 'side') + '","' + (item.rarity || '') + '"\n';
+            });
+            var csvBlob = new Blob([csv], {type: 'text/csv;charset=utf-8'});
+            var csvUrl = URL.createObjectURL(csvBlob);
+            var csvA = document.createElement('a');
+            csvA.href = csvUrl;
+            csvA.download = t('codeTablePrefix') + currentCodex.length + t('codeTableSuffix');
+            document.body.appendChild(csvA);
+            csvA.click();
+            document.body.removeChild(csvA);
+            URL.revokeObjectURL(csvUrl);
+
+            setStatus(t('statusSuccess'));
+        } catch (e) {
+            console.error(e);
+            setStatus(t('statusError') + e.message);
+            alert(t('statusError') + e.message);
+        } finally {
+            if(btn) btn.disabled = false;
+            updateFontCount();
+            updateFontBtnStatus();
+        }
+    }, 100);
+}
+
+// ================= 字体生成（用同一个 getLayout） =================
+function buildBatchFont(currentCodex) {
+    var unitsPerEm = 1000;
+    var notdefGlyph = new opentype.Glyph({ name: '.notdef', unicode: 0, advanceWidth: unitsPerEm, path: new opentype.Path() });
+    var spaceGlyph = new opentype.Glyph({ name: 'space', unicode: 32, advanceWidth: 500, path: new opentype.Path() });
+    var glyphs = [notdefGlyph, spaceGlyph];
+
+    currentCodex.forEach((item, index) => {
+        var shapeChar = item.shapeMeaning || '';
+        var soundChar = item.soundMeaning || '';
+        var struct = item.structure || 'side';
+
+        var p = Object.assign({
+            sideLeftScale: 75, sideRightScale: 100, sideSpacing: -120,
+            sideLeftWidth: 100, sideRightWidth: 100,
+            topScale: 50, bottomScale: 65, topBottomSpacing: -80,
+            encOuterScale: 90, encInnerScale: 45, encOffsetX: 120, encOffsetY: 120
+        }, item.params || {});
+
+        if (shapeChar.length !== 1 || soundChar.length !== 1) {
+            glyphs.push(new opentype.Glyph({ name: 'galaxy_empty_' + index, unicode: PUA_START + index, advanceWidth: unitsPerEm, path: new opentype.Path() }));
+            return;
+        }
+        var shapeGlyph = baseFont.charToGlyph(shapeChar);
+        var soundGlyph = baseFont.charToGlyph(soundChar);
+        if (!shapeGlyph || shapeGlyph.index === 0 || !soundGlyph || soundGlyph.index === 0) {
+            glyphs.push(new opentype.Glyph({ name: 'galaxy_empty_' + index, unicode: PUA_START + index, advanceWidth: unitsPerEm, path: new opentype.Path() }));
+            return;
+        }
+
+        var layout = getLayout(struct, p);
+        var combinedPath = new opentype.Path();
+
+        function placeGlyph(glyph, cfg) {
+            var bbox = glyph.getBoundingBox();
+            var bcx = (bbox.x1 + bbox.x2) / 2;
+            var bcy = (bbox.y1 + bbox.y2) / 2;
+
+            var targetX = cfg.cx;
+            var targetY = 1000 - cfg.cy;
+
+            var path = glyph.getPath(0, 0, unitsPerEm);
+
+            path.commands.forEach(function(cmd) {
+                var c = { type: cmd.type };
+
+if (cmd.x !== undefined) c.x = (cmd.x - bcx) * cfg.sx + targetX;
+                if (cmd.y !== undefined) c.y = (bcy - cmd.y) * cfg.sy + targetY;
+
+                if (cmd.x1 !== undefined) c.x1 = (cmd.x1 - bcx) * cfg.sx + targetX;
+                if (cmd.y1 !== undefined) c.y1 = (bcy - cmd.y1) * cfg.sy + targetY;
+
+                if (cmd.x2 !== undefined) c.x2 = (cmd.x2 - bcx) * cfg.sx + targetX;
+                if (cmd.y2 !== undefined) c.y2 = (bcy - cmd.y2) * cfg.sy + targetY;
+
+                combinedPath.commands.push(c);
+            });
+        }
+
+        placeGlyph(shapeGlyph, layout.shape);
+        placeGlyph(soundGlyph, layout.sound);
+
+        glyphs.push(new opentype.Glyph({ name: 'galaxy_composite_' + index, unicode: PUA_START + index, advanceWidth: unitsPerEm, path: combinedPath }));
+    });
+
+    return new opentype.Font({
+        familyName: 'Galaxy Encoding System',
+        styleName: 'Regular',
+        unitsPerEm: unitsPerEm,
+        ascender: 880,
+        descender: -120,
+        glyphs: glyphs
+    });
+}
+
+// ================= 初始化 =================
+renderShapes();
+renderSounds();
+renderCodex();
+</script>
+
+</body>
+</html>
